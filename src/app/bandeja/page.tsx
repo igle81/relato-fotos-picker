@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { apiPatchTray, apiReadTray } from "@/lib/client-api";
 import { MAX_CANDIDATES } from "@/lib/config";
 import { readGoogleToken } from "@/lib/google-token";
+import { readRememberedHouse } from "@/lib/remember-house";
 import {
   clearRejected,
   readTray,
@@ -40,12 +41,17 @@ function formatWhen(value?: string) {
 export default function BandejaPage() {
   const [items, setItems] = useState<TrayItem[] | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [house, setHouse] = useState<{
+    from?: "relato" | "mascotas";
+    returnUrl?: string;
+  }>({});
 
   useLayoutEffect(() => {
     let cancelled = false;
     const local = readTray();
     setItems(local);
     setToken(readGoogleToken());
+    setHouse(readRememberedHouse());
 
     const load = async () => {
       try {
@@ -131,12 +137,12 @@ export default function BandejaPage() {
           Bandeja de candidatas
         </h1>
         <p className="max-w-2xl text-muted-foreground">
-          Aquí llegan las fotos del Picker. Para que las veas en Relato o
-          Relato Mascotas, pásalas a esa bandeja: quedan pendientes. Nada se
+          Aquí llegan las fotos del Picker. Revisa el lote y, cuando quieras,
+          pásalo a Relato o Relato Mascotas: quedan pendientes. Nada se
           publica solo.
         </p>
         {pending.length > 0 ? (
-          <SendToHouseButtons />
+          <SendToHouseButtons from={house.from} returnUrl={house.returnUrl} />
         ) : null}
       </section>
 
