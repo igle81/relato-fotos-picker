@@ -58,12 +58,23 @@ async function waitForPickedSession(token: string, sessionId: string) {
 export function PickerApp({
   inviteToken,
   inviteName,
+  from,
+  role,
+  visitorName,
+  returnUrl,
 }: {
   inviteToken?: string;
   inviteName?: string;
+  from?: "relato" | "mascotas";
+  role?: "principal" | "tutor";
+  visitorName?: string;
+  returnUrl?: string;
 }) {
   const router = useRouter();
   const googleReady = GOOGLE_CLIENT_ID.length > 0;
+  const house = from === "mascotas" ? "Relato Mascotas" : "Relato";
+  const roleLabel = role === "tutor" ? "acompañante" : role === "principal" ? "autor" : null;
+  const who = visitorName?.trim() || roleLabel;
   const demos = useMemo(() => demoCatalog(), []);
   const [selectedDemo, setSelectedDemo] = useState<string[]>(
     demos.slice(0, 3).map((item) => item.id),
@@ -191,18 +202,31 @@ export function PickerApp({
         <Badge variant="secondary">
           {inviteToken
             ? "Correo de Relato · elige a mano"
-            : "Google ya no deja escanear el rollo"}
+            : from
+              ? `${house} · ${roleLabel === "acompañante" ? "tu Google de acompañante" : "tu Google de autor"}`
+              : "Google ya no deja escanear el rollo"}
         </Badge>
         <h1 className="font-heading max-w-3xl text-3xl leading-tight tracking-tight sm:text-4xl">
           {inviteToken
             ? `${inviteName ? `${inviteName}, ` : ""}elige hasta ${MAX_CANDIDATES} fotos. Van a la bandeja pendientes.`
-            : "La IA no puede elegir sola las fotos de Google Fotos cada mes."}
+            : who
+              ? `${who}, elige hasta ${MAX_CANDIDATES} fotos de TU Google.`
+              : "La IA no puede elegir sola las fotos de Google Fotos cada mes."}
         </h1>
         <p className="max-w-2xl text-muted-foreground">
           {inviteToken
             ? `Relato no pide la contraseña. Abre el Picker, marca hasta ${MAX_CANDIDATES} y confirma. Entran en la bandeja como pendientes: hace falta el dual sí para publicarlas.`
-            : `Desde marzo de 2025 Google cerró el acceso al álbum completo. Lo que sí se puede: un correo con enlace, que la familia abra el Picker, elija hasta ${MAX_CANDIDATES} fotos, y que Relato las deje pendientes en la bandeja. Nunca se publican solas.`}
+            : from
+              ? `${house} ya tiene el Client ID. Entras con tu Google, no con el del otro. Las fotos quedan pendientes: hace falta el sí del autor y del acompañante. Nada se publica solo.`
+              : `Desde marzo de 2025 Google cerró el acceso al álbum completo. Lo que sí se puede: un correo con enlace, que la familia abra el Picker, elija hasta ${MAX_CANDIDATES} fotos, y que Relato las deje pendientes en la bandeja. Nunca se publican solas.`}
         </p>
+        {returnUrl ? (
+          <p className="text-sm">
+            <a href={returnUrl} className="underline">
+              Volver a la bandeja de {house}
+            </a>
+          </p>
+        ) : null}
       </section>
 
       {error ? (
