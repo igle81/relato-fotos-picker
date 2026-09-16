@@ -11,11 +11,16 @@ export async function POST(request: Request) {
   const token = bearerToken(request);
   if (!token) return withCors(request, missingToken());
 
-  let payload: { baseUrl?: string; variant?: "thumb" | "download" };
+  let payload: {
+    baseUrl?: string;
+    variant?: "thumb" | "download";
+    type?: "PHOTO" | "VIDEO";
+  };
   try {
     payload = (await request.json()) as {
       baseUrl?: string;
       variant?: "thumb" | "download";
+      type?: "PHOTO" | "VIDEO";
     };
   } catch {
     return withCors(request, fail("Cuerpo JSON no válido."));
@@ -29,7 +34,11 @@ export async function POST(request: Request) {
   try {
     const { bytes, contentType } = await fetchGoogleMedia(
       token,
-      mediaFileUrl(baseUrl, payload.variant === "download" ? "download" : "thumb"),
+      mediaFileUrl(
+        baseUrl,
+        payload.variant === "download" ? "download" : "thumb",
+        payload.type === "VIDEO" ? "VIDEO" : "PHOTO",
+      ),
     );
     return withCors(
       request,

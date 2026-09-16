@@ -180,18 +180,18 @@ export async function listPickedItems(
       const file = item.mediaFile;
       if (!item.id || !file?.baseUrl) continue;
       const type = item.type === "VIDEO" ? "VIDEO" : "PHOTO";
-        items.push({
-          id: item.id,
-          filename: file.filename || `${type.toLowerCase()}-${item.id}`,
-          mimeType: file.mimeType || (type === "VIDEO" ? "video/mp4" : "image/jpeg"),
-          type,
-          width: file.mediaFileMetadata?.width,
-          height: file.mediaFileMetadata?.height,
-          createdAt: item.createTime,
-          thumbnailUrl: file.baseUrl,
-          googleBaseUrl: file.baseUrl,
-          source: "google_photos",
-        });
+      items.push({
+        id: item.id,
+        filename: file.filename || `${type.toLowerCase()}-${item.id}`,
+        mimeType: file.mimeType || (type === "VIDEO" ? "video/mp4" : "image/jpeg"),
+        type,
+        width: file.mediaFileMetadata?.width,
+        height: file.mediaFileMetadata?.height,
+        createdAt: item.createTime,
+        thumbnailUrl: file.baseUrl,
+        googleBaseUrl: file.baseUrl,
+        source: "google_photos",
+      });
       if (items.length >= limit) return items;
     }
     pageToken = raw.nextPageToken ?? "";
@@ -204,26 +204,53 @@ export function pickerOpenUrl(pickerUri: string) {
   return trimmed.endsWith("/autoclose") ? trimmed : `${trimmed}/autoclose`;
 }
 
-export function mediaFileUrl(baseUrl: string, variant: "thumb" | "download") {
-  const clean = baseUrl.split("=")[0];
-  return variant === "thumb" ? `${clean}=w512-h512` : `${clean}=d`;
+function stripSizeSuffix(baseUrl: string) {
+  return baseUrl.trim().replace(/=(?:w\d+-h\d+|d|dv|rw)(?:-[a-z0-9]+)*$/i, "");
+}
+
+export function mediaFileUrl(
+  baseUrl: string,
+  variant: "thumb" | "download",
+  type: "PHOTO" | "VIDEO" = "PHOTO",
+) {
+  const clean = stripSizeSuffix(baseUrl);
+  if (variant === "thumb") return `${clean}=w512-h512`;
+  if (type === "VIDEO") return `${clean}=dv`;
+  return `${clean}=w2048-h2048`;
 }
 
 export async function fetchGoogleMedia(
   token: string,
   url: string,
 ): Promise<{ bytes: ArrayBuffer; contentType: string }> {
-  const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-  if (!response.ok) {
-    throw new Error(
-      `No pude bajar el archivo de Google Fotos (${response.status}).`,
-    );
+  const attempts = [url];
+  try {
+    const withToken = new URL(url);
+    withToken.searchParams.set("access_token", token);
+    attempts.push(withToken.toString());
+  } catch {
+    /* keep the original URL */
   }
-  return {
-    bytes: await response.arrayBuffer(),
-    contentType: response.headers.get("content-type") || "application/octet-stream",
-  };
+  let lastStatus = 0;
+  for (const candidate of attempts) {
+    const response = await fetch(candidate, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    lastStatus = response.status;
+    if (response.ok) {
+      const bytes = await response.arrayBuffer();
+      if (bytes.byteLength === 0) continue;
+      return {
+        bytes,
+        contentType:
+          response.headers.get("content-type") || "application/octet-stream",
+      };
+    }
+  }
+  throw new Error(
+    lastStatus === 401 || lastStatus === 403
+      ? "La sesión de Google caducó. Vuelve al Picker y elige las fotos otra vez."
+      : `No pude bajar el archivo de Google Fotos (${lastStatus || "sin respuesta"}).`,
+  );
 }
