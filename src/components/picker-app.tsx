@@ -1,6 +1,6 @@
-"use client";
+use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
@@ -23,7 +23,6 @@ import { PhotoThumb } from "@/components/photo-thumb";
 import { GOOGLE_CLIENT_ID, MAX_CANDIDATES } from "@/lib/config";
 import {
   apiCreateSession,
-  apiCreateHandoff,
   apiDeliverInvitePhotos,
   apiListItems,
   apiPollSession,
@@ -32,14 +31,17 @@ import { demoCatalog } from "@/lib/demo-photos";
 import { requestPhotosPickerToken } from "@/lib/google-auth";
 import { pickerOpenUrl } from "@/lib/google-picker";
 import { saveGoogleToken } from "@/lib/google-token";
+import { openAndFocus } from "@/lib/open-window";
+import { rememberHouse } from "@/lib/remember-house";
 import {
   addCandidatesToTray,
   pendingCount,
   rankPickedPhotos,
   readTray,
 } from "@/lib/tray";
-import { houseBandejaUrl, withPickerQuery } from "@/lib/send-to-house";
 import type { PickedPhoto } from "@/lib/types";
+
+const GOOGLE_PICKER_WINDOW = "relato-google-photos-picker";
 
 function notifyTray() {
   window.dispatchEvent(new Event("relato-tray-changed"));
@@ -87,6 +89,31 @@ export function PickerApp({
   const [token, setToken] = useState<string | null>(null);
   const [picked, setPicked] = useState<PickedPhoto[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
+  const googleWindow = useRef<Window | null>(null);
+  const googlePickerUrl = useRef<string | null>(null);
+
+  useEffect(() => {
+    rememberHouse(from, returnUrl);
+  }, [from, returnUrl]);
+
+  function bringGooglePickerForward() {
+    const url = googlePickerUrl.current;
+    if (!url) {
+      if (googleWindow.current && !googleWindow.current.closed) {
+        try {
+          googleWindow.current.focus();
+        } catch {
+          /* ignore */
+        }
+      }
+      return;
+    }
+    googleWindow.current = openAndFocus(
+      url,
+      GOOGLE_PICKER_WINDOW,
+      googleWindow.current,
+    );
+  }
 
   function toggleDemo(id: string) {
     setSelectedDemo((current) =>
@@ -143,35 +170,6 @@ export function PickerApp({
       return;
     }
 
-    if (from || returnUrl) {
-      const target = from === "mascotas" ? "mascotas" : "relato";
-      setStatus(`Pasando ${result.added} fotos a la bandeja de ${house}…`);
-      try {
-        const handoff = await apiCreateHandoff({
-          from: target,
-          googleToken: token,
-          photos: chosen,
-        });
-        window.location.assign(
-          withPickerQuery(houseBandejaUrl(target, returnUrl), {
-            id: handoff.id,
-            from: target,
-            googleToken: token,
-            photos: chosen,
-          }),
-        );
-        return;
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Elegí las fotos, pero no pude pasarlas a Relato. Usa el botón de la bandeja de este Picker.",
-        );
-        router.push("/bandeja");
-        return;
-      }
-    }
-
     router.push("/bandeja");
   }
 
@@ -180,10 +178,10 @@ export function PickerApp({
     setNotice(null);
     setBusy("google");
     setStatus("Pidiendo permiso a Google…");
-    const popup = window.open(
+    googlePickerUrl.current = null;
+    googleWindow.current = openAndFocus(
       "about:blank",
-      "relato-google-photos-picker",
-      "popup=yes,width=480,height=760",
+      GOOGLE_PICKER_WINDOW,
     );
     try {
       const accessToken = await requestPhotosPickerToken();
@@ -192,27 +190,38 @@ export function PickerApp({
       setStatus("Abriendo el Picker oficial…");
       const session = await apiCreateSession(accessToken);
       const url = pickerOpenUrl(session.pickerUri);
-      if (popup && !popup.closed) {
-        popup.location.href = url;
-      } else {
-        window.open(url, "relato-google-photos-picker");
-      }
-      setStatus("Elige hasta 10 fotos en la pestaña de Google y vuelve aquí.");
+      googlePickerUrl.current = url;
+      googleWindow.current = openAndFocus(
+        url,
+        GOOGLE_PICKER_WINDOW,
+        googleWindow.current,
+      );
+      setStatus("Elige hasta 10 fotos en Google. Si no lo ves, tráelo al frente.");
       await waitForPickedSession(accessToken, session.id);
       setStatus("Leyendo las fotos que marcaste…");
       const items = await apiListItems(accessToken, session.id);
       setPicked(items);
+      if (googleWindow.current && !googleWindow.current.closed) {
+        try {
+          googleWindow.current.close();
+        } catch {
+          /* Google a veces cierra solo */
+        }
+      }
       if (items.length === 0) {
         setError("No llegó ninguna foto. Vuelve a abrir el Picker y elige al menos una.");
         return;
       }
       await sendToTray(items, true);
     } catch (err) {
-      if (popup && !popup.closed) popup.close();
+      if (googleWindow.current && !googleWindow.current.closed) {
+        googleWindow.current.close();
+      }
       setError(err instanceof Error ? err.message : "No pude abrir Google Fotos.");
     } finally {
       setBusy(null);
       setStatus(null);
+      googlePickerUrl.current = null;
     }
   }
 
@@ -247,10 +256,10 @@ export function PickerApp({
         </h1>
         <p className="max-w-2xl text-muted-foreground">
           {inviteToken
-            ? `Relato no pide la contraseña. Abre el Picker, marca hasta ${MAX_CANDIDATES} y confirma. Entran en la bandeja como pendientes: hace falta el dual sí para publicarlas.`
+            ? `Relato no pide la contraseña. Abre el Picker, marca hasta ${MAX_CANDIDATES} y confirma. Entran en esta bandeja como pendientes: hace falta el dual sí para publicarlas.`
             : from
-              ? `${house} ya tiene el Client ID. Entras con tu Google, no con el del otro. Las fotos quedan pendientes: hace falta el sí del autor y del acompañante. Nada se publica solo.`
-              : `Desde marzo de 2025 Google cerró el acceso al álbum completo. Lo que sí se puede: un correo con enlace, que la familia abra el Picker, elija hasta ${MAX_CANDIDATES} fotos, y que Relato las deje pendientes en la bandeja. Nunca se publican solas.`}
+              ? `${house} ya tiene el Client ID. Entras con tu Google, no con el del otro. Al elegir, las fotos van a la bandeja de este Picker. Desde ahí las pasas a ${house}. Nada se publica solo.`
+              : `Desde marzo de 2025 Google cerró el acceso al álbum completo. Lo que sí se puede: un correo con enlace, que la familia abra el Picker, elija hasta ${MAX_CANDIDATES} fotos, y que queden en esta bandeja. Desde aquí se pasan a Relato. Nunca se publican solas.`}
         </p>
         {returnUrl ? (
           <p className="text-sm">
@@ -282,8 +291,8 @@ export function PickerApp({
           <CardHeader>
             <CardTitle>Picker de Google Fotos</CardTitle>
             <CardDescription>
-              Se abre en una pestaña nueva. Relato no pide la contraseña ni
-              puede meterse en el rollo a escondidas.
+              El Picker de Google se abre delante. Relato no pide la
+              contraseña ni puede meterse en el rollo a escondidas.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -304,6 +313,16 @@ export function PickerApp({
                 </Button>
                 {status ? (
                   <p className="text-sm text-muted-foreground">{status}</p>
+                ) : null}
+                {busy === "google" ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                    onClick={bringGooglePickerForward}
+                  >
+                    Traer el Picker de Google al frente
+                  </Button>
                 ) : null}
               </>
             ) : (
@@ -342,8 +361,8 @@ export function PickerApp({
               <ol className="list-decimal space-y-2 pl-4 text-sm">
                 <li>Abres el Picker o marcas las de ejemplo.</li>
                 <li>Elige hasta {MAX_CANDIDATES} fotos y confirma.</li>
-                <li>Entran en la bandeja como pendientes.</li>
-                <li>Autor y acompañante dan el dual sí más tarde.</li>
+                <li>Entran en la bandeja de este Picker como pendientes.</li>
+                <li>Desde ahí las pasas a Relato. Autor y acompañante dan el dual sí más tarde.</li>
               </ol>
             </CardContent>
           </Card>
@@ -368,11 +387,12 @@ export function PickerApp({
                   que estar en testers.
                 </li>
                 <li>
-                  Elige hasta {MAX_CANDIDATES} fotos. Van a la bandeja como
-                  pendientes.
+                  Elige hasta {MAX_CANDIDATES} fotos. Van a la bandeja de este
+                  Picker.
                 </li>
                 <li>
-                  Autor y acompañante dan el sí. Relato no publica nada antes.
+                  Desde esa bandeja las pasas a Relato. Autor y acompañante
+                  dan el sí. Relato no publica nada antes.
                 </li>
               </ol>
             </CardContent>
