@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import { AlertCircle, Inbox, Trash2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { apiPatchTray, apiReadTray } from "@/lib/client-api";
 import { MAX_CANDIDATES } from "@/lib/config";
 import { readGoogleToken } from "@/lib/google-token";
-import { readTray, writeTray } from "@/lib/tray";
+import {
+  clearRejected,
+  readTray,
+  rejectTrayItem,
+  setTrayVote,
+  writeTray,
+} from "@/lib/tray";
 import type { TrayItem } from "@/lib/types";
 
 function notifyTray() {
@@ -35,24 +41,45 @@ export default function BandejaPage() {
   const [items, setItems] = useState<TrayItem[] | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     let cancelled = false;
-    setItems(readTray());
+    const local = readTray();
+    setItems(local);
     setToken(readGoogleToken());
 
     const load = async () => {
       try {
         const remote = await apiReadTray();
         if (cancelled || remote.length === 0) return;
-        writeTray(remote);
-        setItems(remote);
+        if (local.length === 0) {
+          writeTray(remote);
+          setItems(remote);
+          return;
+        }
+        const ids = new Set(local.map((item) => item.id));
+        const extra = remote.filter((item) => !ids.has(item.id));
+        if (extra.length === 0) return;
+        const merged = [...local, ...extra];
+        writeTray(merged);
+        setItems(merged);
       } catch {
         /* keep the local bandeja */
       }
     };
     void load();
+
+    const refresh = () => {
+      if (!cancelled) {
+        setItems(readTray());
+        setToken(readGoogleToken());
+      }
+    };
+    window.addEventListener("relato-tray-changed", refresh);
+    window.addEventListener("storage", refresh);
     return () => {
       cancelled = true;
+      window.removeEventListener("relato-tray-changed", refresh);
+      window.removeEventListener("storage", refresh);
     };
   }, []);
 
@@ -69,14 +96,19 @@ export default function BandejaPage() {
     action: "reject" | "vote" | "clearRejected",
     extra?: { id?: string; role?: "authorYes" | "tutorYes"; value?: boolean },
   ) {
-    try {
-      const next = await apiPatchTray({ action, ...extra });
-      writeTray(next);
-      setItems(next);
-    } catch {
-      setItems(readTray());
+    let next = readTray();
+    if (action === "reject" && extra?.id) next = rejectTrayItem(extra.id);
+    if (action === "clearRejected") next = clearRejected();
+    if (action === "vote" && extra?.id && extra.role) {
+      next = setTrayVote(extra.id, extra.role, Boolean(extra.value));
     }
+    setItems(next);
     notifyTray();
+    try {
+      await apiPatchTray({ action, ...extra });
+    } catch {
+      /* the local bandeja already has the vote */
+    }
   }
 
   if (items === null) {

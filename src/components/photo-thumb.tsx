@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 function isDirectThumb(photo: PickedPhoto) {
   return (
     photo.source === "demo" ||
+    Boolean(photo.previewDataUrl) ||
     photo.thumbnailUrl.startsWith("data:") ||
     photo.thumbnailUrl.startsWith("/")
   );
@@ -22,11 +23,17 @@ export function PhotoThumb({
   token: string | null;
   className?: string;
 }) {
-  const [src, setSrc] = useState(isDirectThumb(photo) ? photo.thumbnailUrl : "");
+  const [src, setSrc] = useState(
+    photo.previewDataUrl || (isDirectThumb(photo) ? photo.thumbnailUrl : ""),
+  );
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     setFailed(false);
+    if (photo.previewDataUrl) {
+      setSrc(photo.previewDataUrl);
+      return;
+    }
     if (isDirectThumb(photo)) {
       setSrc(photo.thumbnailUrl);
       return;
@@ -53,7 +60,7 @@ export function PhotoThumb({
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [photo.id, photo.source, photo.thumbnailUrl, token]);
+  }, [photo.id, photo.previewDataUrl, photo.source, photo.thumbnailUrl, token]);
 
   return (
     <div

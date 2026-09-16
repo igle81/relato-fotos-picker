@@ -14,11 +14,14 @@ export function SiteHeader() {
 
   useEffect(() => {
     const refresh = async () => {
+      const local = readTray();
+      setPending(pendingCount(local));
+      if (local.length > 0) return;
       try {
-        const items = await apiReadTray();
-        setPending(pendingCount(items.length ? items : readTray()));
+        const remote = await apiReadTray();
+        if (remote.length > 0) setPending(pendingCount(remote));
       } catch {
-        setPending(pendingCount(readTray()));
+        /* keep the local count */
       }
     };
     void refresh();
