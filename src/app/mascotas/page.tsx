@@ -2,27 +2,24 @@ import { PickerApp } from "@/components/picker-app";
 import { safeReturnUrl } from "@/lib/remember-house";
 
 type Search = {
-  from?: string;
   role?: string;
   name?: string;
   return?: string;
 };
 
-export default async function HomePage({
+export default async function MascotasPickerPage({
   searchParams,
 }: {
   searchParams: Promise<Search>;
 }) {
   const query = await searchParams;
-  const from =
-    query.from === "mascotas" || query.from === "relato" ? query.from : "relato";
   const role =
-    query.role === "tutor" || query.role === "principal" ? query.role : undefined;
+    query.role === "tutor" || query.role === "principal" ? query.role : "tutor";
   const visitorName = query.name?.trim() || undefined;
 
   return (
     <PickerApp
-      from={from}
+      from="mascotas"
       role={role}
       visitorName={visitorName}
       returnUrl={safeReturnUrl(query.return)}

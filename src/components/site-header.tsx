@@ -4,13 +4,33 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiReadTray } from "@/lib/client-api";
+import {
+  houseLabel,
+  readRememberedHouse,
+  resolveHouse,
+  type HouseFrom,
+} from "@/lib/remember-house";
 import { pendingCount, readTray } from "@/lib/tray";
 import { cn } from "@/lib/utils";
 
 export function SiteHeader() {
   const pathname = usePathname();
   const [pending, setPending] = useState(0);
+  const [from, setFrom] = useState<HouseFrom>("relato");
   const inviteFlow = pathname.startsWith("/i/");
+  const mascotasPath = pathname.startsWith("/mascotas");
+  const mascotas = mascotasPath || from === "mascotas";
+  const homeHref = mascotas ? "/mascotas" : "/";
+
+  useEffect(() => {
+    const remembered = readRememberedHouse();
+    setFrom(
+      resolveHouse(
+        mascotasPath ? "mascotas" : remembered.from,
+        remembered.returnUrl,
+      ),
+    );
+  }, [pathname, mascotasPath]);
 
   useEffect(() => {
     const refresh = async () => {
@@ -47,8 +67,8 @@ export function SiteHeader() {
   return (
     <header className="border-b border-border/80 bg-card/70 backdrop-blur">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <Link href="/" className="min-w-0">
-          <p className="font-heading text-xl tracking-tight">Relato</p>
+        <Link href={homeHref} className="min-w-0">
+          <p className="font-heading text-xl tracking-tight">{houseLabel(from)}</p>
           <p className="text-xs text-muted-foreground">Picker de Google Fotos</p>
         </Link>
         <nav className="flex flex-wrap items-center justify-end gap-1 text-sm">
@@ -58,12 +78,14 @@ export function SiteHeader() {
             </Link>
           ) : (
             <>
-              <Link href="/" className={linkClass("/")}>
+              <Link href={homeHref} className={linkClass(homeHref)}>
                 Elegir
               </Link>
-              <Link href="/invitar" className={linkClass("/invitar")}>
-                Correo
-              </Link>
+              {mascotas ? null : (
+                <Link href="/invitar" className={linkClass("/invitar")}>
+                  Correo
+                </Link>
+              )}
               <Link href="/bandeja" className={linkClass("/bandeja")}>
                 Bandeja{pending > 0 ? ` (${pending})` : ""}
               </Link>

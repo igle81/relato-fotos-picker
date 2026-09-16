@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useLayoutEffect, useMemo, useState } from "react";
-import { AlertCircle, Inbox, Trash2 } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Inbox, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,12 +12,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { apiPatchTray, apiReadTray } from "@/lib/client-api";
 import { MAX_CANDIDATES } from "@/lib/config";
 import { readGoogleToken } from "@/lib/google-token";
-import { readRememberedHouse } from "@/lib/remember-house";
+import {
+  houseLabel,
+  readRememberedHouse,
+  resolveHouse,
+} from "@/lib/remember-house";
 import {
   clearRejected,
   readTray,
   rejectTrayItem,
-  setTrayVote,
   writeTray,
 } from "@/lib/tray";
 import type { TrayItem } from "@/lib/types";
@@ -42,16 +44,20 @@ export default function BandejaPage() {
   const [items, setItems] = useState<TrayItem[] | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [house, setHouse] = useState<{
-    from?: "relato" | "mascotas";
+    from: "relato" | "mascotas";
     returnUrl?: string;
-  }>({});
+  }>({ from: "relato" });
 
   useLayoutEffect(() => {
     let cancelled = false;
     const local = readTray();
     setItems(local);
     setToken(readGoogleToken());
-    setHouse(readRememberedHouse());
+    const remembered = readRememberedHouse();
+    setHouse({
+      from: resolveHouse(remembered.from, remembered.returnUrl),
+      returnUrl: remembered.returnUrl,
+    });
 
     const load = async () => {
       try {
@@ -99,21 +105,18 @@ export default function BandejaPage() {
   );
 
   async function update(
-    action: "reject" | "vote" | "clearRejected",
-    extra?: { id?: string; role?: "authorYes" | "tutorYes"; value?: boolean },
+    action: "reject" | "clearRejected",
+    extra?: { id?: string },
   ) {
     let next = readTray();
     if (action === "reject" && extra?.id) next = rejectTrayItem(extra.id);
     if (action === "clearRejected") next = clearRejected();
-    if (action === "vote" && extra?.id && extra.role) {
-      next = setTrayVote(extra.id, extra.role, Boolean(extra.value));
-    }
     setItems(next);
     notifyTray();
     try {
       await apiPatchTray({ action, ...extra });
     } catch {
-      /* the local bandeja already has the vote */
+      /* the local bandeja already has the change */
     }
   }
 
@@ -137,8 +140,8 @@ export default function BandejaPage() {
           Bandeja de candidatas
         </h1>
         <p className="max-w-2xl text-muted-foreground">
-          Aquí llegan las fotos del Picker. Revisa el lote y, cuando quieras,
-          pásalo a Relato o Relato Mascotas: quedan pendientes. Nada se
+          Aquí llegan las fotos de este Picker, el de {houseLabel(house.from)}.
+          Cuando quieras, pásalas a esa casa. Quedan pendientes. Nada se
           publica solo.
         </p>
         {pending.length > 0 ? (
@@ -158,88 +161,51 @@ export default function BandejaPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button asChild>
-                <Link href="/invitar">Mandar correo</Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/">Elegir fotos</Link>
+              {house.from === "relato" ? (
+                <Button asChild>
+                  <Link href="/invitar">Mandar correo</Link>
+                </Button>
+              ) : null}
+              <Button variant={house.from === "relato" ? "outline" : "default"} asChild>
+                <Link href={house.from === "mascotas" ? "/mascotas" : "/"}>
+                  Elegir fotos
+                </Link>
               </Button>
             </div>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
-          {pending.map((item) => {
-            const bothYes = item.authorYes && item.tutorYes;
-            return (
-              <Card key={item.id} className="overflow-hidden py-0">
-                <PhotoThumb
-                  photo={item}
-                  token={token}
-                  className="rounded-none"
-                />
-                <CardContent className="space-y-3 py-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="font-medium">{item.filename}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatWhen(item.createdAt)} ·{" "}
-                        {item.source === "google_photos"
-                          ? "Google Fotos"
-                          : "Demo"}
-                      </p>
-                    </div>
-                    <Badge variant={bothYes ? "default" : "outline"}>
-                      {bothYes ? "Dual sí, sigue pendiente" : "Pendiente"}
-                    </Badge>
+          {pending.map((item) => (
+            <Card key={item.id} className="overflow-hidden py-0">
+              <PhotoThumb
+                photo={item}
+                token={token}
+                className="rounded-none"
+              />
+              <CardContent className="space-y-3 py-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-medium">{item.filename}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatWhen(item.createdAt)} ·{" "}
+                      {item.source === "google_photos"
+                        ? "Google Fotos"
+                        : "Demo"}
+                    </p>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      variant={item.authorYes ? "default" : "outline"}
-                      onClick={() =>
-                        void update("vote", {
-                          id: item.id,
-                          role: "authorYes",
-                          value: !item.authorYes,
-                        })
-                      }
-                    >
-                      Autor {item.authorYes ? "sí" : "aún no"}
-                    </Button>
-                    <Button
-                      variant={item.tutorYes ? "default" : "outline"}
-                      onClick={() =>
-                        void update("vote", {
-                          id: item.id,
-                          role: "tutorYes",
-                          value: !item.tutorYes,
-                        })
-                      }
-                    >
-                      Acompañante {item.tutorYes ? "sí" : "aún no"}
-                    </Button>
-                  </div>
-                  {bothYes ? (
-                    <Alert>
-                      <AlertCircle />
-                      <AlertTitle>No se publica sola</AlertTitle>
-                      <AlertDescription>
-                        Los dos dijeron que sí. En Relato eso no aprueba el
-                        álbum: sigue pendiente hasta el flujo real de dual sí.
-                      </AlertDescription>
-                    </Alert>
-                  ) : null}
-                  <Button
-                    variant="destructive"
-                    className="w-full"
-                    onClick={() => void update("reject", { id: item.id })}
-                  >
-                    Rechazar
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
+                  <Badge variant="outline">Pendiente</Badge>
+                </div>
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  onClick={() => void update("reject", { id: item.id })}
+                >
+                  Rechazar
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
 

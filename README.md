@@ -1,12 +1,17 @@
 # Relato · Picker de Google Fotos
 
-Web para mandar un correo, que la familia elija fotos a mano y dejarlas pendientes en la bandeja de Relato.
+Dos Pickers en el mismo origen de Google, uno por casa:
+
+- Relato: https://relato-fotos-picker.vercel.app
+- Relato Mascotas: https://relato-fotos-picker.vercel.app/mascotas
+
+Cada uno solo envía fotos a su bandeja. Relato pide el sí de los dos. Relato Mascotas pide el sí del tutor.
 
 ## Lo que sí se puede
 
-1. Relato manda un correo con un enlace único (`/invitar`).
-2. Alguien abre el enlace, elige hasta 10 fotos con el Picker (o el modo demo).
-3. Esas fotos pasan a la bandeja de **Relato** o **Relato Mascotas** como pendientes. Autor y acompañante dan el dual sí. Nada se publica solo.
+1. Abres el Picker de tu casa (Relato o Relato Mascotas).
+2. Eliges hasta 10 fotos con el Picker oficial de Google (o el modo demo).
+3. Las pasas a la bandeja de esa casa. Quedan pendientes. Nada se publica solo.
 
 La IA **no** puede recorrer Google Fotos cada mes a solas. Google lo cerró en marzo de 2025.
 
@@ -18,11 +23,11 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Abre [http://127.0.0.1:43147](http://127.0.0.1:43147).
+Abre [http://127.0.0.1:43147](http://127.0.0.1:43147) (Relato) o [http://127.0.0.1:43147/mascotas](http://127.0.0.1:43147/mascotas).
 
 ## Correo
 
-En **Correo** pones el email del cliente. Se crea un enlace `/i/…`.
+En **Correo** (Picker de Relato) pones el email del cliente. Se crea un enlace `/i/…`.
 
 - Si hay `RESEND_API_KEY`, Relato envía el correo.
 - Si no, abre Gmail con el texto listo o copia el enlace.
@@ -47,3 +52,4 @@ Relato nunca pide la contraseña.
 - Máximo 10 candidatas pendientes.
 - Pendiente no se auto-aprueba.
 - El Picker no va en iframe.
+- Un Picker, una casa: no se mezclan Relato y Relato Mascotas.

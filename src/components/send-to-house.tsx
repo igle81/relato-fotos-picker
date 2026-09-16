@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { apiCreateHandoff } from "@/lib/client-api";
 import { readGoogleToken } from "@/lib/google-token";
+import { houseLabel, type HouseFrom } from "@/lib/remember-house";
 import { houseBandejaUrl, withPickerQuery } from "@/lib/send-to-house";
 import { readTray } from "@/lib/tray";
 
@@ -11,36 +12,34 @@ export function SendToHouseButtons({
   from,
   returnUrl,
 }: {
-  from?: "relato" | "mascotas";
+  from: HouseFrom;
   returnUrl?: string;
 }) {
-  const [busy, setBusy] = useState<"relato" | "mascotas" | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const house = houseLabel(from);
 
-  async function send(target: "relato" | "mascotas") {
+  async function send() {
     setError(null);
     const photos = readTray().filter((item) => item.status === "pending");
     if (photos.length === 0) {
       setError("No hay fotos pendientes. Elige primero en el Picker.");
       return;
     }
-    setBusy(target);
+    setBusy(true);
     try {
       const handoff = await apiCreateHandoff({
-        from: target,
+        from,
         googleToken: readGoogleToken(),
         photos,
       });
       window.location.assign(
-        withPickerQuery(
-          houseBandejaUrl(target, target === from ? returnUrl : undefined),
-          {
-            id: handoff.id,
-            from: target,
-            googleToken: readGoogleToken(),
-            photos,
-          },
-        ),
+        withPickerQuery(houseBandejaUrl(from, returnUrl), {
+          id: handoff.id,
+          from,
+          googleToken: readGoogleToken(),
+          photos,
+        }),
       );
     } catch (err) {
       setError(
@@ -48,27 +47,15 @@ export function SendToHouseButtons({
           ? err.message
           : "No pude preparar el envío a la bandeja.",
       );
-      setBusy(null);
+      setBusy(false);
     }
   }
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-2">
-        <Button
-          disabled={busy !== null}
-          onClick={() => void send("relato")}
-        >
-          {busy === "relato" ? "Pasando…" : "Pasar a la bandeja de Relato"}
-        </Button>
-        <Button
-          variant="outline"
-          disabled={busy !== null}
-          onClick={() => void send("mascotas")}
-        >
-          {busy === "mascotas" ? "Pasando…" : "Pasar a Relato Mascotas"}
-        </Button>
-      </div>
+      <Button disabled={busy} onClick={() => void send()}>
+        {busy ? "Pasando…" : `Pasar a la bandeja de ${house}`}
+      </Button>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </div>
   );
