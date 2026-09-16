@@ -143,6 +143,24 @@ export async function apiPatchTray(payload: {
   return body.items ?? [];
 }
 
+export async function apiCreateHandoff(input: {
+  from: "relato" | "mascotas";
+  googleToken: string | null;
+  photos: PickedPhoto[];
+}) {
+  const response = await fetch("/api/handoff", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) throw new Error(await readError(response));
+  return (await response.json()) as {
+    id: string;
+    expiresAt: string;
+    count: number;
+  };
+}
+
 export async function apiFileObjectUrl(
   token: string,
   baseUrl: string,

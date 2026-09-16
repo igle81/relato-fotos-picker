@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PhotoThumb } from "@/components/photo-thumb";
+import { SendToHouseButtons } from "@/components/send-to-house";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiPatchTray, apiReadTray } from "@/lib/client-api";
 import { MAX_CANDIDATES } from "@/lib/config";
@@ -98,10 +99,13 @@ export default function BandejaPage() {
           Bandeja de candidatas
         </h1>
         <p className="max-w-2xl text-muted-foreground">
-          Aquí llegan las fotos que alguien eligió desde el correo o el
-          Picker. Relato no las publica aunque autor y acompañante marquen el
-          sí en esta pantalla: el álbum real sigue exigiendo el dual sí.
+          Aquí llegan las fotos del Picker. Para que las veas en Relato o
+          Relato Mascotas, pásalas a esa bandeja: quedan pendientes. Nada se
+          publica solo.
         </p>
+        {pending.length > 0 ? (
+          <SendToHouseButtons />
+        ) : null}
       </section>
 
       {pending.length === 0 ? (

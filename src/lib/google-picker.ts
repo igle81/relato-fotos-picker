@@ -180,17 +180,18 @@ export async function listPickedItems(
       const file = item.mediaFile;
       if (!item.id || !file?.baseUrl) continue;
       const type = item.type === "VIDEO" ? "VIDEO" : "PHOTO";
-      items.push({
-        id: item.id,
-        filename: file.filename || `${type.toLowerCase()}-${item.id}`,
-        mimeType: file.mimeType || (type === "VIDEO" ? "video/mp4" : "image/jpeg"),
-        type,
-        width: file.mediaFileMetadata?.width,
-        height: file.mediaFileMetadata?.height,
-        createdAt: item.createTime,
-        thumbnailUrl: file.baseUrl,
-        source: "google_photos",
-      });
+        items.push({
+          id: item.id,
+          filename: file.filename || `${type.toLowerCase()}-${item.id}`,
+          mimeType: file.mimeType || (type === "VIDEO" ? "video/mp4" : "image/jpeg"),
+          type,
+          width: file.mediaFileMetadata?.width,
+          height: file.mediaFileMetadata?.height,
+          createdAt: item.createTime,
+          thumbnailUrl: file.baseUrl,
+          googleBaseUrl: file.baseUrl,
+          source: "google_photos",
+        });
       if (items.length >= limit) return items;
     }
     pageToken = raw.nextPageToken ?? "";
