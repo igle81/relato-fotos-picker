@@ -32,7 +32,7 @@ import { requestPhotosPickerToken } from "@/lib/google-auth";
 import { pickerOpenUrl } from "@/lib/google-picker";
 import { saveGoogleToken } from "@/lib/google-token";
 import { openAndFocus } from "@/lib/open-window";
-import { rememberHouse } from "@/lib/remember-house";
+import { houseLabel, rememberHouse } from "@/lib/remember-house";
 import {
   addCandidatesToTray,
   pendingCount,
@@ -76,8 +76,16 @@ export function PickerApp({
 }) {
   const router = useRouter();
   const googleReady = GOOGLE_CLIENT_ID.length > 0;
-  const house = from === "mascotas" ? "Relato Mascotas" : "Relato";
-  const roleLabel = role === "tutor" ? "acompañante" : role === "principal" ? "autor" : null;
+  const houseFrom = from ?? "relato";
+  const house = houseLabel(houseFrom);
+  const mascotas = houseFrom === "mascotas";
+  const roleLabel = mascotas
+    ? "tutor"
+    : role === "tutor"
+      ? "acompañante"
+      : role === "principal"
+        ? "autor"
+        : null;
   const who = visitorName?.trim() || roleLabel;
   const demos = useMemo(() => demoCatalog(), []);
   const [selectedDemo, setSelectedDemo] = useState<string[]>(
@@ -93,7 +101,7 @@ export function PickerApp({
   const googlePickerUrl = useRef<string | null>(null);
 
   useEffect(() => {
-    rememberHouse(from, returnUrl);
+    rememberHouse(from ?? "relato", returnUrl);
   }, [from, returnUrl]);
 
   function bringGooglePickerForward() {
@@ -243,9 +251,11 @@ export function PickerApp({
         <Badge variant="secondary">
           {inviteToken
             ? "Correo de Relato · elige a mano"
-            : from
-              ? `${house} · ${roleLabel === "acompañante" ? "tu Google de acompañante" : "tu Google de autor"}`
-              : "Google ya no deja escanear el rollo"}
+            : mascotas
+              ? `${house} · tu Google de tutor`
+              : roleLabel
+                ? `${house} · tu Google de ${roleLabel}`
+                : `${house} · tu Google`}
         </Badge>
         <h1 className="font-heading max-w-3xl text-3xl leading-tight tracking-tight sm:text-4xl">
           {inviteToken
@@ -256,10 +266,10 @@ export function PickerApp({
         </h1>
         <p className="max-w-2xl text-muted-foreground">
           {inviteToken
-            ? `Relato no pide la contraseña. Abre el Picker, marca hasta ${MAX_CANDIDATES} y confirma. Entran en esta bandeja como pendientes: hace falta el dual sí para publicarlas.`
-            : from
-              ? `${house} ya tiene el Client ID. Entras con tu Google, no con el del otro. Al elegir, las fotos van a la bandeja de este Picker. Desde ahí las pasas a ${house}. Nada se publica solo.`
-              : `Desde marzo de 2025 Google cerró el acceso al álbum completo. Lo que sí se puede: un correo con enlace, que la familia abra el Picker, elija hasta ${MAX_CANDIDATES} fotos, y que queden en esta bandeja. Desde aquí se pasan a Relato. Nunca se publican solas.`}
+            ? `${house} no pide la contraseña. Abre el Picker, marca hasta ${MAX_CANDIDATES} y confirma. Entran en esta bandeja como pendientes.`
+            : mascotas
+              ? `${house} ya tiene el Client ID. Entras con tu Google. Al elegir, las fotos van a la bandeja de este Picker. Desde ahí las pasas a ${house}. En casa basta tu sí de tutor. Nada se publica solo.`
+              : `${house} ya tiene el Client ID. Entras con tu Google, no con el del otro. Al elegir, las fotos van a la bandeja de este Picker. Desde ahí las pasas a ${house}. Allí hace falta el sí de los dos. Nada se publica solo.`}
         </p>
         {returnUrl ? (
           <p className="text-sm">
@@ -362,7 +372,12 @@ export function PickerApp({
                 <li>Abres el Picker o marcas las de ejemplo.</li>
                 <li>Elige hasta {MAX_CANDIDATES} fotos y confirma.</li>
                 <li>Entran en la bandeja de este Picker como pendientes.</li>
-                <li>Desde ahí las pasas a Relato. Autor y acompañante dan el dual sí más tarde.</li>
+                <li>
+                  Desde ahí las pasas a {house}.
+                  {mascotas
+                    ? " En Relato Mascotas basta el sí del tutor."
+                    : " Autor y acompañante dan el sí más tarde."}
+                </li>
               </ol>
             </CardContent>
           </Card>
@@ -391,8 +406,11 @@ export function PickerApp({
                   Picker.
                 </li>
                 <li>
-                  Desde esa bandeja las pasas a Relato. Autor y acompañante
-                  dan el sí. Relato no publica nada antes.
+                  Desde esa bandeja las pasas a {house}.
+                  {mascotas
+                    ? " En Relato Mascotas basta el sí del tutor."
+                    : " Autor y acompañante dan el sí."}{" "}
+                  {house} no publica nada antes.
                 </li>
               </ol>
             </CardContent>
