@@ -6,7 +6,7 @@ Web para mandar un correo, que la familia elija fotos a mano y dejarlas pendient
 
 1. Relato manda un correo con un enlace único (`/invitar`).
 2. Alguien abre el enlace, elige hasta 10 fotos con el Picker (o el modo demo).
-3. Esas fotos quedan **pendientes** en la bandeja. Autor y acompañante dan el dual sí. Nada se publica solo.
+3. Esas fotos pasan a la bandeja de **Relato** o **Relato Mascotas** como pendientes. Autor y acompañante dan el dual sí. Nada se publica solo.
 
 La IA **no** puede recorrer Google Fotos cada mes a solas. Google lo cerró en marzo de 2025.
 

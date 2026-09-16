@@ -12,6 +12,18 @@ export type PickedPhoto = {
   createdAt?: string;
   thumbnailUrl: string;
   source: PickerSource;
+  googleBaseUrl?: string;
+  previewDataUrl?: string;
+};
+
+export type PhotoHandoff = {
+  id: string;
+  from: "relato" | "mascotas";
+  googleToken: string | null;
+  photos: PickedPhoto[];
+  createdAt: string;
+  expiresAt: string;
+  consumedAt?: string;
 };
 
 export type TrayItem = PickedPhoto & {

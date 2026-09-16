@@ -13,6 +13,16 @@ export const DEFAULT_HOUSEHOLD_ID =
 
 export const INVITE_TTL_DAYS = 14;
 
+export const RELATO_BANDEJA_URL =
+  process.env.NEXT_PUBLIC_RELATO_BANDEJA_URL?.replace(/\/$/, "") ||
+  "https://relato-five-kohl.vercel.app/app/bandeja";
+
+export const RELATO_MASCOTAS_BANDEJA_URL =
+  process.env.NEXT_PUBLIC_RELATO_MASCOTAS_BANDEJA_URL?.replace(/\/$/, "") ||
+  "https://relato-mascotas.vercel.app/app/bandeja";
+
+export const HANDOFF_TTL_MS = 20 * 60 * 1000;
+
 export function hasGoogleClientId() {
   return GOOGLE_CLIENT_ID.length > 0;
 }

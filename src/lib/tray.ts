@@ -29,6 +29,11 @@ export function addCandidatesToTray(photos: PickedPhoto[]) {
   const next: TrayItem[] = [
     ...incoming.map((photo) => ({
       ...photo,
+      googleBaseUrl:
+        photo.googleBaseUrl ||
+        (photo.source === "google_photos" && photo.thumbnailUrl.startsWith("https://")
+          ? photo.thumbnailUrl
+          : photo.googleBaseUrl),
       status: "pending" as const,
       authorYes: false,
       tutorYes: false,

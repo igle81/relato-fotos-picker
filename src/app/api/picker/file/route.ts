@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
+import { corsPreflight, withCors } from "@/lib/cors";
 import { fetchGoogleMedia, mediaFileUrl } from "@/lib/google-picker";
 import { bearerToken, fail, missingToken } from "@/lib/http";
 
+export async function OPTIONS(request: Request) {
+  return corsPreflight(request);
+}
+
 export async function POST(request: Request) {
   const token = bearerToken(request);
-  if (!token) return missingToken();
+  if (!token) return withCors(request, missingToken());
 
   let payload: { baseUrl?: string; variant?: "thumb" | "download" };
   try {
@@ -13,12 +18,12 @@ export async function POST(request: Request) {
       variant?: "thumb" | "download";
     };
   } catch {
-    return fail("Cuerpo JSON no válido.");
+    return withCors(request, fail("Cuerpo JSON no válido."));
   }
 
   const baseUrl = payload.baseUrl?.trim();
   if (!baseUrl || !baseUrl.startsWith("https://")) {
-    return fail("Falta la URL del archivo de Google Fotos.");
+    return withCors(request, fail("Falta la URL del archivo de Google Fotos."));
   }
 
   try {
@@ -26,15 +31,18 @@ export async function POST(request: Request) {
       token,
       mediaFileUrl(baseUrl, payload.variant === "download" ? "download" : "thumb"),
     );
-    return new NextResponse(Buffer.from(bytes), {
-      headers: {
-        "Content-Type": contentType,
-        "Cache-Control": "private, max-age=60",
-      },
-    });
+    return withCors(
+      request,
+      new NextResponse(Buffer.from(bytes), {
+        headers: {
+          "Content-Type": contentType,
+          "Cache-Control": "private, max-age=60",
+        },
+      }),
+    );
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "No pude descargar la foto.";
-    return fail(message, 502);
+    return withCors(request, fail(message, 502));
   }
 }
