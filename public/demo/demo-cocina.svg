@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-label="Delantal en la cocina">
+  <rect width="1200" height="900" fill="#f6efe3"/>
+  <rect y="520" width="1200" height="380" fill="#d9c3a3"/>
+  <rect x="180" y="240" width="840" height="280" fill="#c9ddd4"/>
+  <rect x="430" y="300" width="140" height="160" fill="#8aa89a"/>
+  <rect x="630" y="300" width="140" height="160" fill="#8aa89a"/>
+  <circle cx="280" cy="620" r="70" fill="#d96b4c"/>
+  <rect x="720" y="590" width="220" height="28" rx="8" fill="#8c5a3c"/>
+  <text x="60" y="80" fill="#3d4a42" font-family="Georgia, serif" font-size="42">En la cocina</text>
+</svg>

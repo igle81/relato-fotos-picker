@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-label="Mesa de domingo">
+  <rect width="1200" height="900" fill="#f3e4c8"/>
+  <rect x="0" y="560" width="1200" height="340" fill="#c9a27a"/>
+  <ellipse cx="600" cy="620" rx="380" ry="70" fill="#e8d0a8"/>
+  <rect x="430" y="430" width="340" height="24" rx="8" fill="#8c5a3c"/>
+  <rect x="470" y="360" width="260" height="80" rx="16" fill="#f7f1e4"/>
+  <circle cx="390" cy="560" r="46" fill="#d96b4c"/>
+  <circle cx="820" cy="548" r="38" fill="#6f8f62"/>
+  <text x="60" y="80" fill="#5c3a24" font-family="Georgia, serif" font-size="42">Mesa de domingo</text>
+</svg>

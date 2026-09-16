@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-label="Libro abierto">
+  <rect width="1200" height="900" fill="#efe4d2"/>
+  <rect x="220" y="240" width="760" height="460" rx="18" fill="#8c5a3c"/>
+  <rect x="250" y="270" width="340" height="400" fill="#f7f1e4"/>
+  <rect x="610" y="270" width="340" height="400" fill="#f3ead8"/>
+  <line x1="600" y1="270" x2="600" y2="670" stroke="#c9a27a" stroke-width="8"/>
+  <text x="60" y="80" fill="#5c3a24" font-family="Georgia, serif" font-size="42">Libro abierto</text>
+</svg>

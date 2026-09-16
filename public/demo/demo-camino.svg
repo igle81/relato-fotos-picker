@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-label="Camino de casa">
+  <rect width="1200" height="900" fill="#dce7c8"/>
+  <rect y="520" width="1200" height="380" fill="#b7c48d"/>
+  <path d="M520 900 L600 430 L680 900 Z" fill="#cbb48a"/>
+  <circle cx="280" cy="430" r="90" fill="#6f8f62"/>
+  <circle cx="900" cy="400" r="120" fill="#587a52"/>
+  <rect x="560" y="360" width="80" height="90" fill="#8c5a3c"/>
+  <text x="60" y="80" fill="#3d4a42" font-family="Georgia, serif" font-size="42">Camino de casa</text>
+</svg>

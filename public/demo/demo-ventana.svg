@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-label="Luz de tarde">
+  <rect width="1200" height="900" fill="#ead4b2"/>
+  <rect x="260" y="120" width="680" height="660" fill="#8f6a48"/>
+  <rect x="300" y="160" width="280" height="280" fill="#f4c98a"/>
+  <rect x="620" y="160" width="280" height="280" fill="#efb56e"/>
+  <rect x="300" y="480" width="280" height="250" fill="#e7a45a"/>
+  <rect x="620" y="480" width="280" height="250" fill="#d98d46"/>
+  <text x="60" y="80" fill="#5c3a24" font-family="Georgia, serif" font-size="42">Luz de tarde</text>
+</svg>
