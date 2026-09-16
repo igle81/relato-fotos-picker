@@ -23,6 +23,7 @@ import { PhotoThumb } from "@/components/photo-thumb";
 import { GOOGLE_CLIENT_ID, MAX_CANDIDATES } from "@/lib/config";
 import {
   apiCreateSession,
+  apiCreateHandoff,
   apiDeliverInvitePhotos,
   apiListItems,
   apiPollSession,
@@ -37,6 +38,7 @@ import {
   rankPickedPhotos,
   readTray,
 } from "@/lib/tray";
+import { houseBandejaUrl, withPickerQuery } from "@/lib/send-to-house";
 import type { PickedPhoto } from "@/lib/types";
 
 function notifyTray() {
@@ -140,6 +142,36 @@ export function PickerApp({
       );
       return;
     }
+
+    if (from || returnUrl) {
+      const target = from === "mascotas" ? "mascotas" : "relato";
+      setStatus(`Pasando ${result.added} fotos a la bandeja de ${house}…`);
+      try {
+        const handoff = await apiCreateHandoff({
+          from: target,
+          googleToken: token,
+          photos: chosen,
+        });
+        window.location.assign(
+          withPickerQuery(houseBandejaUrl(target, returnUrl), {
+            id: handoff.id,
+            from: target,
+            googleToken: token,
+            photos: chosen,
+          }),
+        );
+        return;
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Elegí las fotos, pero no pude pasarlas a Relato. Usa el botón de la bandeja de este Picker.",
+        );
+        router.push("/bandeja");
+        return;
+      }
+    }
+
     router.push("/bandeja");
   }
 
