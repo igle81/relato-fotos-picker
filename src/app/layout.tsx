@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Geist_Mono, Source_Sans_3 } from "next/font/google";
+import Link from "next/link";
 import Script from "next/script";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
@@ -39,8 +40,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
         </main>
         <footer className="border-t border-border/70 px-4 py-6 text-center text-xs text-muted-foreground">
-          Relato no pide contraseñas. Google Fotos solo se abre con el Picker
-          oficial, en una pestaña nueva.
+          <p>
+            Relato no pide contraseñas. Google Fotos solo se abre con el Picker
+            oficial, en una pestaña nueva.
+          </p>
+          <nav aria-label="Información legal" className="mt-2 flex justify-center gap-4">
+            <Link href="/privacidad" className="underline">
+              Política de privacidad
+            </Link>
+            <Link href="/terminos" className="underline">
+              Términos
+            </Link>
+          </nav>
         </footer>
         <Script
           src="https://accounts.google.com/gsi/client"

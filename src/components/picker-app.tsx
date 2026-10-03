@@ -19,6 +19,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { GoogleConsentDialog } from "@/components/google-consent-dialog";
 import { PhotoThumb } from "@/components/photo-thumb";
 import { GOOGLE_CLIENT_ID, MAX_CANDIDATES } from "@/lib/config";
 import {
@@ -33,6 +34,7 @@ import { pickerOpenUrl } from "@/lib/google-picker";
 import { saveGoogleToken } from "@/lib/google-token";
 import { openAndFocus } from "@/lib/open-window";
 import { houseLabel, rememberHouse } from "@/lib/remember-house";
+import { rankedSelectionNotice } from "@/lib/selection-notice";
 import {
   addCandidatesToTray,
   pendingCount,
@@ -97,6 +99,7 @@ export function PickerApp({
   const [token, setToken] = useState<string | null>(null);
   const [picked, setPicked] = useState<PickedPhoto[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
+  const [consentOpen, setConsentOpen] = useState(false);
   const googleWindow = useRef<Window | null>(null);
   const googlePickerUrl = useRef<string | null>(null);
 
@@ -166,7 +169,7 @@ export function PickerApp({
     notifyTray();
     setNotice(
       ranked
-        ? `La IA ordenó las ${result.added} más recientes entre las que tú elegiste. No puede mirar el resto del rollo.`
+        ? rankedSelectionNotice(result.added)
         : `Entraron ${result.added} fotos a la bandeja como pendientes.`,
     );
     if (result.added === 0) {
@@ -312,7 +315,7 @@ export function PickerApp({
                   size="lg"
                   className="w-full sm:w-auto"
                   disabled={busy !== null}
-                  onClick={() => void startGooglePicker()}
+                  onClick={() => setConsentOpen(true)}
                 >
                   {busy === "google" ? (
                     <LoaderCircle className="animate-spin" />
@@ -392,7 +395,9 @@ export function PickerApp({
             <CardContent>
               <ol className="list-decimal space-y-2 pl-4 text-sm">
                 <li>Recibe un correo de Relato y abre el enlace.</li>
-                <li>Pulsa «Elegir fotos de Google Fotos».</li>
+                <li>
+                  Pulsa «Elegir fotos de Google Fotos» y acepta el aviso.
+                </li>
                 <li>
                   En la ventana de Google, entra con el Gmail de la familia y
                   acepta solo el Picker.
@@ -423,8 +428,8 @@ export function PickerApp({
           <div>
             <h2 className="font-heading text-2xl">Modo demo</h2>
             <p className="text-sm text-muted-foreground">
-              Prueba la bandeja sin conectar Google. La IA solo ordena entre
-              las que marques aquí.
+              Prueba la bandeja sin conectar Google. Las que marques se
+              ordenan por fecha, de la más reciente a la más antigua.
             </p>
           </div>
           <Button
@@ -469,6 +474,15 @@ export function PickerApp({
           })}
         </div>
       </section>
+      <GoogleConsentDialog
+        open={consentOpen}
+        busy={busy !== null}
+        onDecline={() => setConsentOpen(false)}
+        onAccept={() => {
+          setConsentOpen(false);
+          void startGooglePicker();
+        }}
+      />
     </div>
   );
 }

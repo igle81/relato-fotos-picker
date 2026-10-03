@@ -6,7 +6,8 @@
     "dev": "next dev --port 43147",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "tsx --test src/lib/handoff.test.ts src/app/api/handoff/route.test.ts"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
@@ -27,6 +28,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }
