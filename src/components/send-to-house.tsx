@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { apiCreateHandoff } from "@/lib/client-api";
-import { readGoogleToken } from "@/lib/google-token";
+import { clearGoogleToken, readGoogleToken } from "@/lib/google-token";
 import { houseLabel, type HouseFrom } from "@/lib/remember-house";
 import { houseBandejaUrl, withPickerQuery } from "@/lib/send-to-house";
 import { readTray } from "@/lib/tray";
@@ -33,13 +33,9 @@ export function SendToHouseButtons({
         googleToken: readGoogleToken(),
         photos,
       });
+      clearGoogleToken();
       window.location.assign(
-        withPickerQuery(houseBandejaUrl(from, returnUrl), {
-          id: handoff.id,
-          from,
-          googleToken: readGoogleToken(),
-          photos,
-        }),
+        withPickerQuery(houseBandejaUrl(from, returnUrl), handoff.id),
       );
     } catch (err) {
       setError(

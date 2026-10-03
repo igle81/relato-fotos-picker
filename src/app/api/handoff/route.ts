@@ -1,46 +1,15 @@
 import { NextResponse } from "next/server";
 import { HANDOFF_TTL_MS } from "@/lib/config";
 import { corsPreflight, withCors } from "@/lib/cors";
-import { fetchGoogleMedia, mediaFileUrl } from "@/lib/google-picker";
 import { saveHandoff } from "@/lib/handoff-store";
 import { fail } from "@/lib/http";
+import { prepareHandoffPhotos } from "@/lib/prepare-handoff";
 import type { PickedPhoto, PhotoHandoff } from "@/lib/types";
+
+export const dynamic = "force-dynamic";
 
 export async function OPTIONS(request: Request) {
   return corsPreflight(request);
-}
-
-async function withPreview(
-  photo: PickedPhoto,
-  googleToken: string | null,
-): Promise<PickedPhoto> {
-  const googleBaseUrl =
-    photo.googleBaseUrl ||
-    (photo.source === "google_photos" && photo.thumbnailUrl.startsWith("https://")
-      ? photo.thumbnailUrl
-      : undefined);
-  if (photo.previewDataUrl) {
-    return { ...photo, googleBaseUrl };
-  }
-  if (googleBaseUrl && googleToken) {
-    try {
-      const { bytes, contentType } = await fetchGoogleMedia(
-        googleToken,
-        mediaFileUrl(googleBaseUrl, "thumb"),
-      );
-      return {
-        ...photo,
-        googleBaseUrl,
-        previewDataUrl: `data:${contentType};base64,${Buffer.from(bytes).toString("base64")}`,
-      };
-    } catch {
-      return { ...photo, googleBaseUrl };
-    }
-  }
-  if (photo.thumbnailUrl.startsWith("data:")) {
-    return { ...photo, previewDataUrl: photo.thumbnailUrl, googleBaseUrl };
-  }
-  return { ...photo, googleBaseUrl };
 }
 
 export async function POST(request: Request) {
@@ -62,16 +31,21 @@ export async function POST(request: Request) {
   }
 
   const googleToken = payload.googleToken?.trim() || null;
-  const packed: PickedPhoto[] = [];
-  for (const photo of photos.slice(0, 10)) {
-    packed.push(await withPreview(photo, googleToken));
+  let packed: PickedPhoto[];
+  try {
+    packed = await prepareHandoffPhotos(photos, googleToken);
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "No pude descargar las fotos elegidas.";
+    return withCors(request, fail(message, 502));
   }
 
   const now = Date.now();
   const item: PhotoHandoff = {
     id: crypto.randomUUID(),
     from,
-    googleToken,
     photos: packed,
     createdAt: new Date(now).toISOString(),
     expiresAt: new Date(now + HANDOFF_TTL_MS).toISOString(),

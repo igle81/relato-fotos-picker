@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { corsPreflight, withCors } from "@/lib/cors";
-import { consumeHandoff, readHandoff } from "@/lib/handoff-store";
+import { deleteHandoff, takeHandoff, toPublicHandoff } from "@/lib/handoff-store";
 import { fail } from "@/lib/http";
+
+export const dynamic = "force-dynamic";
 
 export async function OPTIONS(request: Request) {
   return corsPreflight(request);
@@ -12,7 +14,7 @@ export async function GET(
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
-  const item = await readHandoff(id);
+  const item = await takeHandoff(id);
   if (!item) {
     return withCors(
       request,
@@ -21,12 +23,8 @@ export async function GET(
   }
   return withCors(
     request,
-    NextResponse.json({
-      id: item.id,
-      from: item.from,
-      googleToken: item.googleToken,
-      photos: item.photos,
-      expiresAt: item.expiresAt,
+    NextResponse.json(toPublicHandoff(item), {
+      headers: { "Cache-Control": "private, no-store" },
     }),
   );
 }
@@ -36,6 +34,6 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
-  await consumeHandoff(id);
+  await deleteHandoff(id);
   return withCors(request, NextResponse.json({ ok: true }));
 }
